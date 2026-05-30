@@ -21,6 +21,35 @@ Three Claude Code skills packaged as a plugin.
 
 ## Installation
 
+### npx (no install needed)
+
+```bash
+npx whipforaweeb-skills
+```
+
+### npm global
+
+```bash
+npm install -g whipforaweeb-skills
+whipforaweeb-skills
+```
+
+### Script (from cloned repo)
+
+```bash
+# macOS / Linux
+git clone https://github.com/VVeb1250/WhipForAWeeb-skills.git
+cd WhipForAWeeb-skills
+bash install.sh
+```
+
+```powershell
+# Windows
+git clone https://github.com/VVeb1250/WhipForAWeeb-skills.git
+cd WhipForAWeeb-skills
+pwsh install.ps1
+```
+
 ### Manual
 
 Copy the skill directories you want into `~/.claude/skills/`:

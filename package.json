@@ -1,0 +1,23 @@
+{
+  "name": "whipforaweeb-skills",
+  "version": "0.1.0",
+  "description": "WhipForAWeeb Claude Code Skills Pack — graphify-link, codegraph-link, mistake-learning",
+  "bin": {
+    "whipforaweeb-skills": "bin/install.js"
+  },
+  "files": [
+    "plugins/",
+    "bin/"
+  ],
+  "keywords": [
+    "claude-code",
+    "claude",
+    "skills",
+    "graphify",
+    "codegraph"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}
