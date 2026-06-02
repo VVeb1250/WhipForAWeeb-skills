@@ -1,5 +1,6 @@
 __pycache__/
 *.pyc
+.skill-index.json
 graphify-out/
 node_modules/
 .DS_Store

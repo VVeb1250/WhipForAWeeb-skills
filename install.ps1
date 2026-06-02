@@ -4,7 +4,7 @@ $scriptDir = $PSScriptRoot
 
 New-Item -ItemType Directory -Force $dest | Out-Null
 
-foreach ($skill in @('graphify-link', 'codegraph-link', 'mistake-learning')) {
+foreach ($skill in @('graphify-link', 'codegraph-link', 'mistake-learning', 'skill-router')) {
     $src = Join-Path $scriptDir "plugins\skills\$skill"
     if (Test-Path $src) {
         Copy-Item -Recurse -Force $src $dest

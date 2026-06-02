@@ -1,7 +1,7 @@
 {
   "name": "whipforaweeb-skills",
-  "version": "0.3.0",
-  "description": "WhipForAWeeb Claude Code Skills Pack — graphify-link, codegraph-link, mistake-learning",
+  "version": "0.4.0",
+  "description": "WhipForAWeeb Claude Code Skills Pack — graphify-link, codegraph-link, mistake-learning, skill-router",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/VVeb1250/WhipForAWeeb-skills.git"
@@ -22,7 +22,9 @@
     "claude",
     "skills",
     "graphify",
-    "codegraph"
+    "codegraph",
+    "skill-router",
+    "hooks"
   ],
   "license": "MIT",
   "engines": {

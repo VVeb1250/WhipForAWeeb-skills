@@ -79,6 +79,20 @@ const SKILLS = [
         }
       }
     ])
+  },
+  {
+    id: 'skill-router',
+    desc: 'Auto-suggest relevant skills per prompt (local, no AI)',
+    prereqs: [
+      { label: `Python (${py})`, ok: () => has(py) },
+    ],
+    hook: () => ({
+      event: 'UserPromptSubmit',
+      entry: {
+        command: `${py} "${skillPath('skill-router', 'hooks', 'skill-router.py')}"`,
+        description: 'Suggest high-confidence skill matches for the prompt'
+      }
+    })
   }
 ];
 
