@@ -1,0 +1,6 @@
+**/__pycache__/
+*.pyc
+graphify-out/
+node_modules/
+.DS_Store
+Thumbs.db
