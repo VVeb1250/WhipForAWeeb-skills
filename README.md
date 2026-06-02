@@ -8,14 +8,14 @@ Three Claude Code skills packaged as a plugin.
 |-------|-------------|
 | `graphify-link` | Links a project to a graphify knowledge graph. Manages `graphify-roots.json`, installs fast-path drivers (`graphify-build.py`, `graphify-update.py`), starts `graphify watch`. |
 | `codegraph-link` | Wires a project to the CodeGraph MCP (`@colbymchenry/codegraph`). Writes/removes the managed role-split block in `CLAUDE.md`. |
-| `mistake-learning` | Stop hook that reads CLV2 session observations, detects known mistake patterns, and increments `(xN)` counters in `~/.claude/rules/mistakes-index.md`. |
+| `mistake-learning` | Stop hook that reads the session transcript directly (no CLV2 dependency), detects known syntactic mistake patterns, and increments `(xN)` counters in `~/.claude/rules/mistakes-index.md`. Bundles a `mistakes-sweep.py` health/auto-archive script and seeds the `rules/mistakes-*.md` files on install. |
 
 ## Requirements
 
 - Python 3 — `py` launcher (Windows) or `python3` (macOS/Linux)
 - `graphify` CLI — `graphify-link` skill only
 - `codegraph` CLI — `codegraph-link` skill only
-- `~/.claude/rules/mistakes-index.md` — `mistake-learning` skill only
+- `~/.claude/rules/mistakes-*.md` — `mistake-learning` skill auto-seeds these on install if missing (existing files are never overwritten)
 
 > PowerShell is **not** required. All hooks are pure Python.
 
@@ -100,6 +100,45 @@ cp -r plugins/skills/mistake-learning ~/.claude/skills/
 }
 ```
 
+**mistake-learning sweep (health + auto-archive) — SessionStart, Windows:**
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "command": "py \"%USERPROFILE%\\.claude\\skills\\mistake-learning\\hooks\\mistakes-sweep.py\" --fix-safe --quiet; exit 0",
+        "description": "Budget check + auto-archive FIXED entries"
+      }
+    ]
+  }
+}
+```
+
+**mistake-learning sweep — SessionStart, macOS / Linux:**
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "command": "python3 \"$HOME/.claude/skills/mistake-learning/hooks/mistakes-sweep.py\" --fix-safe --quiet; exit 0",
+        "description": "Budget check + auto-archive FIXED entries"
+      }
+    ]
+  }
+}
+```
+
+> **Make Claude log mistakes proactively.** The Stop hook only auto-counts the 3
+> syntactic patterns. For Claude to record *new* mistakes, add this line to your
+> `~/.claude/CLAUDE.md` so the trigger is always in context:
+>
+> ```
+> ## Mistakes
+> `rules/mistakes-index.md` auto-loaded. New mistake → write entry immediately. [HIGH] pattern → warn first.
+> ```
+
 **graphify intercept hook — Windows:**
 
 ```json
@@ -144,6 +183,18 @@ py "$env:USERPROFILE\.claude\skills\mistake-learning\hooks\stop-hook.py"
 ```bash
 # macOS / Linux
 python3 ~/.claude/skills/mistake-learning/hooks/stop-hook.py
+```
+
+**mistake-learning sweep (health report):**
+
+```powershell
+# Windows
+py "$env:USERPROFILE\.claude\skills\mistake-learning\hooks\mistakes-sweep.py"
+```
+
+```bash
+# macOS / Linux
+python3 ~/.claude/skills/mistake-learning/hooks/mistakes-sweep.py
 ```
 
 **graphify intercept:**

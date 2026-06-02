@@ -13,11 +13,24 @@ HOME = Path(os.environ.get("USERPROFILE", os.environ.get("HOME", str(Path.home()
 MISTAKES_FILE = HOME / ".claude" / "rules" / "mistakes-index.md"
 
 # (id, tool_name, input_field, input_regex, entry_substring, severity)
+#
+# SCOPE: only SYNTACTIC mistakes detectable from a single tool_use call belong
+# here. Semantic mistakes (missing await, save-after-merge, "read graph first")
+# depend on outcome/intent and CANNOT be matched reliably from tool input alone
+# — those stay manual in mistakes-index.md. Loose patterns OVER-COUNT: anchor
+# regexes to command boundaries, never bare substrings. See [hook-false-positive].
 KNOWN_PATTERNS = [
-    ("python_cmd",  "Bash",        "command", r"(?<!\w)python3?\s",  "[py-command]",       "HIGH"),
-    ("slash_path",  "Bash",        "command", r"['\"]\/[A-Za-z]",    "[path-backslash]",   "HIGH"),
-    ("ps_null_coal","PowerShell",  "command", r"\?\?",               "[ps-null-coalesce]", "HIGH"),
+    # python/python3 invoked as a command (not "which python", not in a string).
+    ("python_cmd",  "Bash",        "command", r"(?:^|[;&|]\s*)python3?\b", "[py-command]",       "HIGH"),
+    # WSL bash trap: `bash 'C:/...'`. git-bash full-path form `& '...bash.exe' '...'`
+    # has no `bash<space><quote>` so it does NOT match — only the broken form does.
+    ("bash_wsl",    "PowerShell",  "command", r"bash\s+['\"][A-Za-z]:",    "[bash-wsl]",         "HIGH"),
+    # `??` null-coalesce operator (PS 5.1 parse error).
+    ("ps_null_coal","PowerShell",  "command", r"\?\?",                      "[ps-null-coalesce]", "HIGH"),
 ]
+# REMOVED: slash_path r"['\"]\/[A-Za-z]" on Bash — git-bash uses `/` legitimately,
+# so it false-positived on every quoted POSIX path and inflated [path-backslash].
+# path-backslash is a PowerShell/Windows-exe mistake; not reliably auto-detectable.
 
 
 def get_transcript_path():

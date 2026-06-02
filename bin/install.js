@@ -62,15 +62,48 @@ const SKILLS = [
     prereqs: [
       { label: `Python (${py})`, ok: () => has(py) },
     ],
-    hook: () => ({
-      event: 'Stop',
-      entry: {
-        command: `${py} "${skillPath('mistake-learning', 'hooks', 'stop-hook.py')}"`,
-        description: 'Increment mistake counters on session end'
+    seed: true,
+    hook: () => ([
+      {
+        event: 'Stop',
+        entry: {
+          command: `${py} "${skillPath('mistake-learning', 'hooks', 'stop-hook.py')}"`,
+          description: 'Increment mistake counters on session end'
+        }
+      },
+      {
+        event: 'SessionStart',
+        entry: {
+          command: `${py} "${skillPath('mistake-learning', 'hooks', 'mistakes-sweep.py')}" --fix-safe --quiet; exit 0`,
+          description: 'Budget check + auto-archive FIXED entries'
+        }
       }
-    })
+    ])
   }
 ];
+
+// A skill's hook() may return a single {event, entry} or an array of them.
+function getHooks(skill) {
+  const h = skill.hook ? skill.hook() : null;
+  if (!h) return [];
+  return Array.isArray(h) ? h : [h];
+}
+
+// Seed ~/.claude/rules/mistakes-*.md from the skill's seed/ dir, never overwriting
+// an existing record.
+function seedRules(skill) {
+  const seedDir = path.join(src, skill.id, 'seed');
+  if (!fs.existsSync(seedDir)) return;
+  const rules = path.join(home, '.claude', 'rules');
+  fs.mkdirSync(rules, { recursive: true });
+  for (const f of fs.readdirSync(seedDir)) {
+    const target = path.join(rules, f);
+    if (!fs.existsSync(target)) {
+      fs.copyFileSync(path.join(seedDir, f), target);
+      console.log(`  ${green}✓${reset} seeded: rules${sep}${f}`);
+    }
+  }
+}
 
 function checkSkill(skill) {
   return skill.prereqs.map(p => ({ ...p, passed: p.ok() }));
@@ -93,14 +126,23 @@ function installSkill(skill) {
 }
 
 function printHooks(installed) {
-  const stopHooks = installed.filter(s => s.hook && s.hook().event === 'Stop').map(s => s.hook().entry);
-  const preHooks  = installed.filter(s => s.hook && s.hook().event === 'PreToolUse').map(s => s.hook().entry);
-  if (!stopHooks.length && !preHooks.length) return;
   const hooks = {};
-  if (stopHooks.length) hooks.Stop       = stopHooks;
-  if (preHooks.length)  hooks.PreToolUse = preHooks;
+  for (const skill of installed) {
+    for (const { event, entry } of getHooks(skill)) {
+      (hooks[event] = hooks[event] || []).push(entry);
+    }
+  }
+  if (!Object.keys(hooks).length) return;
   console.log('\nAdd to ~/.claude/settings.json:\n');
   console.log(JSON.stringify({ hooks }, null, 2));
+
+  if (installed.some(s => s.id === 'mistake-learning')) {
+    console.log(
+      `\n${yellow}To make Claude record NEW mistakes${reset}, add to ~/.claude/CLAUDE.md:\n` +
+      '  ## Mistakes\n' +
+      '  `rules/mistakes-index.md` auto-loaded. New mistake → write entry immediately. [HIGH] pattern → warn first.'
+    );
+  }
 }
 
 // ── Interactive checkbox selector ──────────────────────────────────────────
@@ -215,6 +257,7 @@ async function main() {
   fs.mkdirSync(dest, { recursive: true });
   console.log();
   selected.forEach(installSkill);
+  selected.filter(s => s.seed).forEach(seedRules);
   printHooks(selected);
 }
 
