@@ -1,104 +1,104 @@
 #!/usr/bin/env python3
 """
 mistake-learning Stop hook
-Reads CLV2 observations for this session, detects known mistake patterns,
+Reads Claude Code session transcript (transcript_path from stdin),
+detects known mistake patterns in tool_use calls,
 increments xN counter in mistakes-index.md.
 """
 import json, os, re, sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from pathlib import Path
 
 HOME = Path(os.environ.get("USERPROFILE", os.environ.get("HOME", str(Path.home()))))
 MISTAKES_FILE = HOME / ".claude" / "rules" / "mistakes-index.md"
-HOMUNCULUS_BASE = HOME / ".local" / "share" / "ecc-homunculus"
-SESSION_WINDOW_HOURS = 4
 
-# Known patterns: (id, tool, input_regex, entry_substring_to_match, severity)
-# entry_substring_to_match = unique substring in existing mistakes-index entry
+# (id, tool_name, input_field, input_regex, entry_substring, severity)
 KNOWN_PATTERNS = [
-    (
-        "python_cmd",
-        "Bash",
-        r"(?<!\w)(python3?)\s",
-        "python` หรือ `python3`",
-        "HIGH",
-    ),
-    (
-        "slash_path",
-        "Bash",
-        r"['\"]\/[A-Za-z]",
-        "ใช้ `/` ใน path",
-        "HIGH",
-    ),
-    (
-        "ps_null_coal",
-        "PowerShell",
-        r"\?\?",
-        "null-coalescing operator",
-        "HIGH",
-    ),
+    ("python_cmd",  "Bash",        "command", r"(?<!\w)python3?\s",  "[py-command]",       "HIGH"),
+    ("slash_path",  "Bash",        "command", r"['\"]\/[A-Za-z]",    "[path-backslash]",   "HIGH"),
+    ("ps_null_coal","PowerShell",  "command", r"\?\?",               "[ps-null-coalesce]", "HIGH"),
 ]
 
 
-def load_recent_observations():
-    if not HOMUNCULUS_BASE.exists():
-        return []
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=SESSION_WINDOW_HOURS)
-    obs = []
-    for obs_file in HOMUNCULUS_BASE.rglob("observations.jsonl"):
-        try:
-            with open(obs_file, encoding="utf-8", errors="ignore") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
+def get_transcript_path():
+    try:
+        data = json.loads(sys.stdin.read())
+        return data.get("transcript_path")
+    except Exception:
+        return None
+
+
+def load_tool_calls(transcript_path):
+    calls = []
+    try:
+        with open(transcript_path, encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                    if entry.get("type") != "assistant":
                         continue
-                    try:
-                        entry = json.loads(line)
-                        ts_str = entry.get("timestamp", "")
-                        ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
-                        if ts > cutoff:
-                            obs.append(entry)
-                    except Exception:
-                        pass
-        except Exception:
-            pass
-    return obs
+                    content = entry.get("message", {}).get("content", [])
+                    if not isinstance(content, list):
+                        continue
+                    for block in content:
+                        if isinstance(block, dict) and block.get("type") == "tool_use":
+                            calls.append({
+                                "tool": block.get("name", ""),
+                                "input": block.get("input", {}),
+                            })
+                except Exception:
+                    pass
+    except Exception:
+        pass
+    return calls
 
 
-def detect_patterns(observations):
+def detect_patterns(tool_calls):
     triggered = set()
-    for entry in observations:
-        if entry.get("event") != "tool_start":
-            continue
-        tool = entry.get("tool", "")
-        inp = entry.get("input", "") or ""
-        for pid, req_tool, pattern, _, severity in KNOWN_PATTERNS:
-            if req_tool and tool != req_tool:
+    for call in tool_calls:
+        tool = call.get("tool", "")
+        inp = call.get("input", {})
+        for pid, req_tool, field, pattern, _, _sev in KNOWN_PATTERNS:
+            if tool != req_tool:
                 continue
-            if re.search(pattern, inp):
+            value = inp.get(field, "") or ""
+            if re.search(pattern, value):
                 triggered.add(pid)
     return triggered
 
 
 def increment_xn(content, match_substring):
-    """Find line containing match_substring and increment its (xN) counter."""
     lines = content.splitlines(keepends=True)
+    today = datetime.now().strftime("%Y-%m-%d")
     for i, line in enumerate(lines):
-        if match_substring in line:
-            m = re.search(r"\(x(\d+)\)", line)
-            if m:
-                n = int(m.group(1)) + 1
-                lines[i] = line[: m.start()] + f"(x{n})" + line[m.end() :]
-                return "".join(lines), True
+        if match_substring not in line:
+            continue
+        m = re.search(r"\(x(\d+),\s*[\d-]+\)", line)
+        if m:
+            n = int(m.group(1)) + 1
+            lines[i] = line[: m.start()] + f"(x{n}, {today})" + line[m.end() :]
+            return "".join(lines), True
+        m = re.search(r"\(x(\d+)\)", line)
+        if m:
+            n = int(m.group(1)) + 1
+            lines[i] = line[: m.start()] + f"(x{n}, {today})" + line[m.end() :]
+            return "".join(lines), True
     return content, False
 
 
 def main():
-    observations = load_recent_observations()
-    if not observations:
+    transcript_path = get_transcript_path()
+    if not transcript_path:
         sys.exit(0)
 
-    triggered = detect_patterns(observations)
+    tool_calls = load_tool_calls(transcript_path)
+    if not tool_calls:
+        sys.exit(0)
+
+    triggered = detect_patterns(tool_calls)
     if not triggered:
         sys.exit(0)
 
@@ -107,8 +107,7 @@ def main():
 
     content = MISTAKES_FILE.read_text(encoding="utf-8")
     changed = False
-
-    for pid, _tool, _pattern, match_sub, _sev in KNOWN_PATTERNS:
+    for pid, _tool, _field, _pat, match_sub, _sev in KNOWN_PATTERNS:
         if pid in triggered:
             content, did_change = increment_xn(content, match_sub)
             if did_change:
