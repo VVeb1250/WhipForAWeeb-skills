@@ -15,12 +15,16 @@ Strip the managed block (markers inclusive, regex `(?s)<!-- codegraph-link:start
 
 ## Link (default)
 
-1. **CLI** — `where.exe codegraph`. Missing → stop, tell user to install CodeGraph then `codegraph init -i`.
-2. **Index** — `$root\.codegraph\codegraph.db` must exist. Missing → run `codegraph init -i` in `$root` (`-i` = init + index, NOT interactive); show output. Non-zero exit → stop, report error.
-3. **MCP** — `codegraph` entry in `~/.claude.json`. Missing → report, suggest `codegraph install --target=claude`. Do not hand-edit `.claude.json`.
-4. **Permissions** — report any missing `mcp__codegraph__*` allow entries in `~/.claude/settings.json`.
+1. **CLI** — `where.exe codegraph`. Missing → stop, tell user to install CodeGraph (`npm i -g @colbymchenry/codegraph`) then `codegraph init`.
+2. **Index** — gate on real health, not file presence: `codegraph status -j $root` → parse JSON. `initialized:true` → OK. `initialized:false` (or non-zero exit, or no `.codegraph\`) → run `codegraph init` in `$root` (init + initial index runs by default as of 0.9.7+; the old `-i` flag is deprecated but still accepted); show output; non-zero exit → stop, report error. If `.codegraph\` exists but `status` reports not-initialized/empty (corrupt or interrupted index), run `codegraph index` to rebuild.
+3. **MCP** — `codegraph` entry in `~/.claude.json`.
+   - Missing → suggest `codegraph install --target=claude -l global -y` (non-interactive; also writes the auto-allow list). Do not hand-edit `.claude.json`.
+   - Present → **drift check**: run `codegraph install --print-config claude` and compare its `command`/`args` to the live entry. Differ (stale config after a CLI upgrade) → report the drift and suggest re-running the install line above to refresh.
+   - Optional token trim: add `"env": { "CODEGRAPH_MCP_TOOLS": "explore,search,node,callers,callees,impact,files,status" }` to the entry to expose only the tools you use (comma short-names; drop ones you never call to shrink the per-session tool schema).
+   - Multi-agent: 0.9.9 also targets `cursor, codex, opencode, hermes, gemini, antigravity, kiro` — one index, many agents via `codegraph install -t <ids> -y`.
+4. **Permissions** — report any missing `mcp__codegraph__*` allow entries in `~/.claude/settings.json`. Canonical set (8 tools): `codegraph_explore`, `codegraph_search`, `codegraph_callers`, `codegraph_callees`, `codegraph_impact`, `codegraph_node`, `codegraph_files`, `codegraph_status`.
 5. **Write block** — pick by `$root\graphify-out\graph.json`: exists → `blocks/graphify.md`, else → `blocks/code-only.md` (and note user can rerun after `/graphify` to upgrade). Read that block file (it already contains the markers) and write it verbatim into `$root\CLAUDE.md` (UTF-8 no BOM, create if missing). Idempotent: if the marker regex above matches, replace that span; else append. Use a literal replacement so `$`/regex metachars survive.
-6. **Confirm** — one line: `codegraph-link: <full split | code-only> block written to <root>\CLAUDE.md; index OK, graphify <present/absent>, MCP <present/missing>, auto-allow <present/missing>.`
+6. **Confirm** — one line: `codegraph-link: <full split | code-only> block written to <root>\CLAUDE.md; index OK, graphify <present/absent>, MCP <present/missing/drift>, auto-allow <present/missing>.`
 
 ## Guardrails
 
