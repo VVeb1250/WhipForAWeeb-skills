@@ -25,18 +25,26 @@ Five Claude Code skills packaged as a plugin.
 
 ### Claude Code plugin marketplace (`/plugin`)
 
-Installs the **skills** natively — no copy step, auto-discovered by the harness.
+Installs **skills *and* hooks** natively — no copy step, no manual `settings.json` edit.
 
 ```
 /plugin marketplace add VVeb1250/WhipForAWeeb-skills
 /plugin install whipforaweeb-skills@whipforaweeb-skills
 ```
 
-> **Hooks are not auto-registered by `/plugin`.** The `py`/`python3` launcher differs
-> per OS, so the hooks (skill-router, mistake-learning, graphify intercept) must be
-> added to `~/.claude/settings.json` by hand — see [Registering hooks](#registering-hooks-in-claudesettingsjson)
-> below. For a one-shot setup that *prints* the right snippets for your OS, use the
-> npm installer instead.
+The five skills auto-discover, and the `skill-router` (UserPromptSubmit),
+`mistake-learning` (Stop + SessionStart), and `graphify` (PreToolUse) hooks
+register automatically.
+
+> **Requires `node` on `PATH`.** The hooks are Python, but the `py` (Windows)
+> vs `python3` (macOS/Linux) launcher cannot be expressed in a single plugin
+> hook command — so every hook is routed through `plugins/hooks/run.js`, a tiny
+> Node launcher that picks the right interpreter at runtime. Node ships with
+> Claude Code, so this is normally already satisfied.
+>
+> Prefer the npm installer if you want hooks written into your own
+> `~/.claude/settings.json` (it prints OS-correct `py`/`python3` snippets) rather
+> than scoped to the plugin.
 
 ### npx (no install needed)
 

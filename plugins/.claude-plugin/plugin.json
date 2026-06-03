@@ -1,9 +1,56 @@
 {
   "name": "whipforaweeb-skills",
-  "version": "0.6.1",
-  "description": "Five Claude Code skills: graphify-link, codegraph-link, codegraph-affected, mistake-learning, skill-router. Skills auto-load; hooks are registered manually (see README) because the Python launcher differs per OS.",
+  "version": "0.6.2",
+  "description": "Five Claude Code skills: graphify-link, codegraph-link, codegraph-affected, mistake-learning, skill-router. Skills auto-load and the skill-router / mistake-learning / graphify hooks auto-register via a cross-platform Node launcher.",
   "author": {
     "name": "VVeb1250",
     "url": "https://github.com/VVeb1250"
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/run.js\" skills/skill-router/hooks/skill-router.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/run.js\" skills/mistake-learning/hooks/stop-hook.py",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/run.js\" --soft skills/mistake-learning/hooks/mistakes-sweep.py --fix-safe --quiet",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "graphify",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/run.js\" skills/graphify-link/hooks/intercept-graphify-skill.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
   }
 }

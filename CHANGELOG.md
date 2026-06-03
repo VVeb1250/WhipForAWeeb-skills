@@ -5,6 +5,22 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v0.6.2] — 2026-06-04
+
+### Added — hooks auto-register on the `/plugin` install path
+
+> v0.6.1 made `/plugin` install the skills, but not the hooks — so `/plugin` users silently lost `skill-router`, `mistake-learning`, and the `graphify` fast-path. This wires them up.
+
+- New `plugins/hooks/run.js` — a tiny cross-platform Node launcher. A plugin hook command is a single fixed string, but the Python launcher differs per OS (`py` vs `python3`); `run.js` picks the right one at runtime and forwards stdin/stdout/exit code unchanged. `--soft` mode forces exit 0 for non-critical hooks (SessionStart sweep) so a failing script never blocks the session.
+- `plugins/.claude-plugin/plugin.json` now declares all four hooks via `run.js`: `UserPromptSubmit` (skill-router), `Stop` + `SessionStart` (mistake-learning), `PreToolUse`/`graphify` (graphify intercept).
+- README `/plugin` section updated: hooks now auto-register; documents the `node`-on-PATH requirement.
+
+> **Verified** against a live `claude --plugin-dir` load: 5 skills loaded and the `UserPromptSubmit` hook fired end-to-end through `run.js` → `py` → `skill-router.py`, returning injected context.
+
+> Requires `node` on `PATH` (ships with Claude Code). npm-installer users are unaffected — that path still writes OS-correct `py`/`python3` snippets into `settings.json`.
+
+---
+
 ## [v0.6.1] — 2026-06-04
 
 ### Fixed — `codegraph-affected` was never installed
@@ -126,6 +142,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+[v0.6.2]: https://github.com/VVeb1250/WhipForAWeeb-skills/releases/tag/v0.6.2
 [v0.6.1]: https://github.com/VVeb1250/WhipForAWeeb-skills/releases/tag/v0.6.1
 [v0.6.0]: https://github.com/VVeb1250/WhipForAWeeb-skills/releases/tag/v0.6.0
 [v0.4.0]: https://github.com/VVeb1250/WhipForAWeeb-skills/releases/tag/v0.4.0
