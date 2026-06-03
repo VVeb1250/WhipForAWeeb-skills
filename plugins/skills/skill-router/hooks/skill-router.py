@@ -11,7 +11,7 @@ not surfaced in the harness skill list, by emitting a Read path for them.
 
 Safe by construction: any error -> exit 0 with no output (never blocks prompt).
 """
-import sys, os, json, re, math, glob
+import sys, os, json, re, math, glob, unicodedata
 
 HOME = os.path.expanduser("~")
 CLAUDE = os.path.join(HOME, ".claude")
@@ -172,8 +172,27 @@ def score(prompt, skills):
     return [(c, s) for c, s in out if c >= top * REL_MIN][:MAX_RESULTS]
 
 
-def fmt(results):
-    lines = ["\U0001f3af Skill router (local, cosine≥%.2f):" % COSINE_MIN]
+def has_foreign_letters(text):
+    """True if prompt has non-ASCII *letters* (Thai/CJK/Cyrillic/…), not just
+    emoji or punctuation. Gate for the heavy semantic tier."""
+    for ch in text:
+        if ord(ch) > 127 and unicodedata.category(ch).startswith("L"):
+            return True
+    return False
+
+
+def semantic_fallback(prompt):
+    """Tier-2: multilingual embedding match. Silent if model/deps missing."""
+    try:
+        import embed
+        return embed.search(prompt)
+    except Exception:
+        return []
+
+
+def fmt(results, semantic=False):
+    tag = "semantic" if semantic else "cosine≥%.2f" % COSINE_MIN
+    lines = ["\U0001f3af Skill router (local, %s):" % tag]
     for cos, s in results:
         if s["kind"] == "read":
             how = "Read " + s["path"]
@@ -194,9 +213,16 @@ def main():
         return
     idx = load_index()
     results = score(prompt, idx.get("skills", []))
+    semantic = False
+    if not results and has_foreign_letters(prompt):
+        # tier-2: cross-lingual semantic match (lazy, only on foreign prompts)
+        if os.path.dirname(os.path.abspath(__file__)) not in sys.path:
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        results = semantic_fallback(prompt)
+        semantic = bool(results)
     if not results:
         return
-    ctx = fmt(results)
+    ctx = fmt(results, semantic=semantic)
     out = {
         "hookSpecificOutput": {
             "hookEventName": "UserPromptSubmit",

@@ -1,6 +1,6 @@
 ---
 name: skill-router
-description: Local, no-AI skill suggester. A UserPromptSubmit hook scores every installed skill/command against your prompt (TF-IDF cosine) and injects only high-confidence matches, so the model picks the right skill without you remembering names. Surfaces dormant skills that the harness does not list.
+description: Local, no-AI skill suggester. A UserPromptSubmit hook scores every installed skill/command against your prompt (TF-IDF cosine) and injects only high-confidence matches, so the model picks the right skill without you remembering names. Multilingual via an optional semantic tier (any language → English skills). Surfaces dormant skills that the harness does not list.
 ---
 
 # skill-router
@@ -39,6 +39,29 @@ Skills that the harness lists as invokable are emitted as `/name`; dormant skill
 (e.g. `skills/ecc/*`) are emitted as `Read <path>/SKILL.md` so they can still be
 applied.
 
+### Tier-2: multilingual semantic fallback
+
+TF-IDF is **lexical** — it only matches when prompt and skill docs share the same
+words, so a non-English prompt against an English corpus scores ~0. Tier-2 fixes
+this:
+
+- Tier-1 (TF-IDF, instant) runs first on every prompt.
+- **Only** if tier-1 returns nothing **and** the prompt contains non-ASCII
+  letters (Thai, CJK, Cyrillic, …), tier-2 (`embed.py`) loads a multilingual
+  MiniLM model (ONNX) and matches by sentence-embedding cosine in a shared
+  cross-lingual space. A prompt in any language then matches the English skills.
+
+Plain-English prompts never load the model, so the common path stays free. When
+tier-2 fires it costs ~1–1.5 s (model + tokenizer load + one embed; the 303 corpus
+vectors are embedded once and cached in `.skill-vecs.npz`, keyed by index sig).
+The header reads `local, semantic` instead of `local, cosine≥…` so you can tell
+which tier answered.
+
+Tier-2 is **optional**. If `onnxruntime` / `tokenizers` / the model files are
+absent, `embed.py` raises and the hook falls back to silence — exactly as before.
+Enable it once with `setup_embeddings.ps1` (installs deps, downloads the ~113 MB
+quantized model + tokenizer into `hooks/models/`).
+
 ### Indexed sources
 
 | Glob | Tier | Emitted as |
@@ -60,6 +83,14 @@ Constants at the top of `hooks/skill-router.py`:
 | `REL_MIN` | `0.5` | Keep results within this fraction of the top score. |
 | `MAX_RESULTS` | `3` | Max skills suggested per prompt. |
 | `MIN_PROMPT_LEN` | `8` | Skip very short prompts. |
+
+Tier-2 constants (top of `hooks/embed.py`):
+
+| Const | Default | Effect |
+|-------|---------|--------|
+| `SEM_MIN` | `0.30` | Semantic-cosine floor (MiniLM scale, not TF-IDF). |
+| `REL_MIN` | `0.85` | Keep semantic results within this fraction of the top. |
+| `MAX_TOKENS` | `128` | Truncate prompt/doc length before embedding. |
 
 ## Install
 
@@ -86,6 +117,21 @@ the hook in `~/.claude/settings.json`:
 
 On macOS/Linux use `python3` and the path
 `"$HOME/.claude/skills/skill-router/hooks/skill-router.py"` (drop the `shell` key).
+
+Copy `embed.py` and `setup_embeddings.ps1` alongside `skill-router.py`. The model
+files and vector cache must live in the **same directory as the running script**
+(`embed.py` resolves `models/` and `.skill-*` relative to its own location), so
+deploy all code to one dir and run setup there.
+
+To enable the multilingual tier:
+
+```powershell
+# from the hooks dir that the settings.json command points at
+powershell -File setup_embeddings.ps1
+```
+
+This installs `onnxruntime` + `tokenizers` and downloads the model into
+`models/`. Skip it to keep the router English-only (lexical tier still works).
 
 ## Safety
 
