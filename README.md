@@ -8,6 +8,7 @@ Four Claude Code skills packaged as a plugin.
 |-------|-------------|
 | `graphify-link` | Links a project to a graphify knowledge graph. Manages `graphify-roots.json`, installs fast-path drivers (`graphify-build.py`, `graphify-update.py`), starts `graphify watch`. |
 | `codegraph-link` | Wires a project to the CodeGraph MCP (`@colbymchenry/codegraph`). Writes/removes the managed role-split block in `CLAUDE.md`. |
+| `codegraph-affected` | Runs only the tests impacted by a change. Maps changed source files → impacted test files via `codegraph affected`, then runs just those (hands off to existing runner skills). Requires a CodeGraph index. |
 | `mistake-learning` | Stop hook that reads the session transcript directly (no CLV2 dependency), detects known syntactic mistake patterns, and increments `(xN)` counters in `~/.claude/rules/mistakes-index.md`. Bundles a `mistakes-sweep.py` health/auto-archive script and seeds the `rules/mistakes-*.md` files on install. |
 | `skill-router` | UserPromptSubmit hook that scores every installed skill/command against your prompt (local TF-IDF cosine, no AI) and injects only high-confidence matches, so the model picks the right skill without you naming it. Surfaces dormant nested skills (e.g. `skills/ecc/*`) the harness does not list. Silent below threshold → ~0 tokens on unrelated prompts. Index auto-rebuilds when skills are added/removed/edited. |
 
@@ -67,6 +68,7 @@ Copy-Item -Recurse "plugins\skills\skill-router"     "$env:USERPROFILE\.claude\s
 # macOS / Linux
 cp -r plugins/skills/graphify-link    ~/.claude/skills/
 cp -r plugins/skills/codegraph-link   ~/.claude/skills/
+cp -r plugins/skills/codegraph-affected ~/.claude/skills/
 cp -r plugins/skills/mistake-learning ~/.claude/skills/
 cp -r plugins/skills/skill-router     ~/.claude/skills/
 ```

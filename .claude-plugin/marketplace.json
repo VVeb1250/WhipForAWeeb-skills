@@ -1,10 +1,11 @@
 {
   "name": "WhipForAWeeb-skills",
   "displayName": "WhipForAWeeb Skills Pack",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "skills": [
     "plugins/skills/graphify-link",
     "plugins/skills/codegraph-link",
+    "plugins/skills/codegraph-affected",
     "plugins/skills/mistake-learning",
     "plugins/skills/skill-router"
   ]

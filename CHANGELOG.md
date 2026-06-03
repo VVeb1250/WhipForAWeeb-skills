@@ -5,6 +5,29 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v0.5.0] — 2026-06-04
+
+### Added — `codegraph-affected`
+
+> Run only the tests impacted by a change, using CodeGraph's dependency graph instead of a full-suite run.
+
+- Maps changed source files → impacted test files via `codegraph affected --stdin`, then runs only those tests.
+- Health-gates on `codegraph status -j` (`initialized:true`); tells the user to run `/codegraph-link` first if no index.
+- Picks the changed-file set from explicit args, `base=<ref>` diff, or uncommitted + staged + untracked.
+- Hands off to existing runner skills (`/go-test`, `/flutter-test`, …); never silently falls back to the full suite.
+
+### Changed — `codegraph-link` (CodeGraph 0.9.9 reconcile)
+
+- Fixed stale MCP tool names in the managed `CLAUDE.md` block: dropped non-existent `codegraph_context` / `codegraph_trace`, added real `codegraph_search` / `codegraph_status`. Canonical 8-tool set now listed.
+- **Index check** now gates on `codegraph status -j` health (`initialized`), not bare `.codegraph/codegraph.db` file presence.
+- **MCP drift check**: compares the live `~/.claude.json` entry against `codegraph install --print-config claude` and flags stale config after a CLI upgrade.
+- `init -i` → `init` (indexing runs by default as of 0.9.7+; `-i` deprecated). Install hint uses `-l global -y`.
+- Added optional `CODEGRAPH_MCP_TOOLS` token-trim note and multi-agent install targets (`gemini`, `antigravity`, `kiro`, …).
+
+> ⚠️ Already-linked projects keep stale tool names baked into their `CLAUDE.md` block — re-run `/codegraph-link` per project to refresh.
+
+---
+
 ## [v0.4.0] — 2026-06-03
 
 ### Added — `skill-router`
