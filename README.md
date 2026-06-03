@@ -1,6 +1,6 @@
 # WhipForAWeeb Skills Pack
 
-Four Claude Code skills packaged as a plugin.
+Five Claude Code skills packaged as a plugin.
 
 ## Included Skills
 
@@ -22,6 +22,21 @@ Four Claude Code skills packaged as a plugin.
 > PowerShell is **not** required. All hooks are pure Python.
 
 ## Installation
+
+### Claude Code plugin marketplace (`/plugin`)
+
+Installs the **skills** natively — no copy step, auto-discovered by the harness.
+
+```
+/plugin marketplace add VVeb1250/WhipForAWeeb-skills
+/plugin install whipforaweeb-skills@whipforaweeb-skills
+```
+
+> **Hooks are not auto-registered by `/plugin`.** The `py`/`python3` launcher differs
+> per OS, so the hooks (skill-router, mistake-learning, graphify intercept) must be
+> added to `~/.claude/settings.json` by hand — see [Registering hooks](#registering-hooks-in-claudesettingsjson)
+> below. For a one-shot setup that *prints* the right snippets for your OS, use the
+> npm installer instead.
 
 ### npx (no install needed)
 
@@ -58,10 +73,11 @@ Copy the skill directories you want into `~/.claude/skills/`:
 
 ```powershell
 # Windows
-Copy-Item -Recurse "plugins\skills\graphify-link"    "$env:USERPROFILE\.claude\skills\"
-Copy-Item -Recurse "plugins\skills\codegraph-link"   "$env:USERPROFILE\.claude\skills\"
-Copy-Item -Recurse "plugins\skills\mistake-learning" "$env:USERPROFILE\.claude\skills\"
-Copy-Item -Recurse "plugins\skills\skill-router"     "$env:USERPROFILE\.claude\skills\"
+Copy-Item -Recurse "plugins\skills\graphify-link"      "$env:USERPROFILE\.claude\skills\"
+Copy-Item -Recurse "plugins\skills\codegraph-link"     "$env:USERPROFILE\.claude\skills\"
+Copy-Item -Recurse "plugins\skills\codegraph-affected" "$env:USERPROFILE\.claude\skills\"
+Copy-Item -Recurse "plugins\skills\mistake-learning"   "$env:USERPROFILE\.claude\skills\"
+Copy-Item -Recurse "plugins\skills\skill-router"       "$env:USERPROFILE\.claude\skills\"
 ```
 
 ```bash

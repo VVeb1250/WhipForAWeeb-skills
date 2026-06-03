@@ -24,37 +24,38 @@ jobs:
         run: |
           node -e "require('./package.json')" || { echo "::error file=package.json::invalid JSON"; exit 1; }
           node -e "require('./.claude-plugin/marketplace.json')" || { echo "::error file=.claude-plugin/marketplace.json::invalid JSON"; exit 1; }
+          node -e "require('./plugins/.claude-plugin/plugin.json')" || { echo "::error file=plugins/.claude-plugin/plugin.json::invalid JSON"; exit 1; }
 
-      - name: Version sync (package.json == marketplace.json)
+      - name: Version sync (package.json == plugin.json)
         shell: bash
         run: |
           PKG=$(node -p "require('./package.json').version")
-          MKT=$(node -p "require('./.claude-plugin/marketplace.json').version")
-          echo "package.json=$PKG marketplace.json=$MKT"
-          if [ "$PKG" != "$MKT" ]; then
-            echo "::error::version drift — package.json=$PKG != marketplace.json=$MKT"
+          PLG=$(node -p "require('./plugins/.claude-plugin/plugin.json').version")
+          echo "package.json=$PKG plugin.json=$PLG"
+          if [ "$PKG" != "$PLG" ]; then
+            echo "::error::version drift — package.json=$PKG != plugin.json=$PLG"
             exit 1
           fi
 
-      - name: Manifest <-> filesystem skills in sync
+      - name: Marketplace plugin source resolves to a plugin
         shell: bash
         run: |
-          mapfile -t LISTED < <(node -p "require('./.claude-plugin/marketplace.json').skills.join('\n')")
           fail=0
-          # every skill listed in marketplace.json exists on disk with a SKILL.md
-          for s in "${LISTED[@]}"; do
-            if [ ! -f "$s/SKILL.md" ]; then
-              echo "::error::manifest lists '$s' but '$s/SKILL.md' is missing"
+          # every plugin listed in marketplace.json has a .claude-plugin/plugin.json at its source
+          mapfile -t SRCS < <(node -p "require('./.claude-plugin/marketplace.json').plugins.map(p=>p.source).join('\n')")
+          for s in "${SRCS[@]}"; do
+            if [ ! -f "$s/.claude-plugin/plugin.json" ]; then
+              echo "::error::marketplace plugin source '$s' has no .claude-plugin/plugin.json"
               fail=1
             fi
           done
-          # every skill dir on disk is registered in the manifest
+          # every skill dir under plugins/skills ships a SKILL.md so it auto-discovers
           for d in plugins/skills/*/; do
             d="${d%/}"
-            printf '%s\n' "${LISTED[@]}" | grep -qx "$d" || {
-              echo "::error::skill dir '$d' exists but is not registered in marketplace.json"
+            if [ ! -f "$d/SKILL.md" ]; then
+              echo "::error::skill dir '$d' is missing SKILL.md"
               fail=1
-            }
+            fi
           done
           exit $fail
 

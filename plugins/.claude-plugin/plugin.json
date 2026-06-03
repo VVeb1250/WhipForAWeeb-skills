@@ -1,0 +1,9 @@
+{
+  "name": "whipforaweeb-skills",
+  "version": "0.6.1",
+  "description": "Five Claude Code skills: graphify-link, codegraph-link, codegraph-affected, mistake-learning, skill-router. Skills auto-load; hooks are registered manually (see README) because the Python launcher differs per OS.",
+  "author": {
+    "name": "VVeb1250",
+    "url": "https://github.com/VVeb1250"
+  }
+}

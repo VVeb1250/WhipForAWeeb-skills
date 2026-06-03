@@ -1,12 +1,17 @@
 {
-  "name": "WhipForAWeeb-skills",
-  "displayName": "WhipForAWeeb Skills Pack",
-  "version": "0.6.0",
-  "skills": [
-    "plugins/skills/graphify-link",
-    "plugins/skills/codegraph-link",
-    "plugins/skills/codegraph-affected",
-    "plugins/skills/mistake-learning",
-    "plugins/skills/skill-router"
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "whipforaweeb-skills",
+  "description": "WhipForAWeeb Claude Code Skills Pack — graphify-link, codegraph-link, codegraph-affected, mistake-learning, skill-router",
+  "owner": {
+    "name": "VVeb1250",
+    "url": "https://github.com/VVeb1250"
+  },
+  "plugins": [
+    {
+      "name": "whipforaweeb-skills",
+      "description": "Five skills: graphify-link, codegraph-link, codegraph-affected, mistake-learning, skill-router. Hooks must be registered manually (see README).",
+      "source": "./plugins",
+      "category": "productivity"
+    }
   ]
 }
