@@ -5,6 +5,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v0.6.1] — 2026-06-04
+
+### Fixed — `codegraph-affected` was never installed
+
+> `codegraph-affected` shipped in the package and was listed in the README table, but **every primary installer skipped it** — `npx`/`npm`, `install.ps1`, and `install.sh` all copied only 4 of the 5 skills.
+
+- Added `codegraph-affected` to `bin/install.js` (`SKILLS` array), `install.ps1`, and `install.sh`.
+- Added the missing `codegraph-affected` line to the **Windows** manual-copy block in the README (the macOS/Linux block already had it).
+
+### Added — Claude Code plugin marketplace (`/plugin`) support
+
+> The pack can now be installed natively via `/plugin marketplace add` — skills auto-discover, no copy step.
+
+- Rewrote `.claude-plugin/marketplace.json` to the standard schema (`$schema` / `owner` / `plugins[]`); the previous non-standard top-level `skills[]` key would not load via `/plugin`.
+- Added `plugins/.claude-plugin/plugin.json` so the `plugins/` dir resolves as a single plugin and its `skills/` are auto-discovered.
+- Hooks are **not** auto-registered by `/plugin` (the `py` vs `python3` launcher differs per OS); they remain a documented manual step for both install paths. README gained a `/plugin` install section noting this.
+- CI (`validate.yml`): version-sync now compares `package.json` ↔ `plugins/.claude-plugin/plugin.json`; the manifest check now verifies each marketplace plugin `source` resolves to a `plugin.json` and every `plugins/skills/*` ships a `SKILL.md` (the old check read the removed `marketplace.json.skills`).
+
+---
+
 ## [v0.6.0] — 2026-06-04
 
 ### Added — `codegraph-affected`
@@ -106,6 +126,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+[v0.6.1]: https://github.com/VVeb1250/WhipForAWeeb-skills/releases/tag/v0.6.1
 [v0.6.0]: https://github.com/VVeb1250/WhipForAWeeb-skills/releases/tag/v0.6.0
 [v0.4.0]: https://github.com/VVeb1250/WhipForAWeeb-skills/releases/tag/v0.4.0
 [v0.3.0]: https://github.com/VVeb1250/WhipForAWeeb-skills/releases/tag/v0.3.0

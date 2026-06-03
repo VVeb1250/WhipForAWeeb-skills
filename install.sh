@@ -4,7 +4,7 @@ DEST="${HOME}/.claude/skills"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 mkdir -p "$DEST"
-for skill in graphify-link codegraph-link mistake-learning skill-router; do
+for skill in graphify-link codegraph-link codegraph-affected mistake-learning skill-router; do
   src="$SCRIPT_DIR/plugins/skills/$skill"
   if [ -d "$src" ]; then
     cp -r "$src" "$DEST/"

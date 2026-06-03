@@ -57,6 +57,14 @@ const SKILLS = [
     hook: null
   },
   {
+    id: 'codegraph-affected',
+    desc: 'Run only the tests impacted by a change',
+    prereqs: [
+      { label: 'codegraph CLI  (npm i -g @colbymchenry/codegraph)', ok: () => has('codegraph') },
+    ],
+    hook: null
+  },
+  {
     id: 'mistake-learning',
     desc: 'Auto-increment mistake counters on session end',
     prereqs: [
