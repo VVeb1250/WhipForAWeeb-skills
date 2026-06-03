@@ -1,0 +1,98 @@
+name: Validate PR
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history + tags for collision check
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # --- always-on guards (every PR) ---
+
+      - name: JSON parses
+        shell: bash
+        run: |
+          node -e "require('./package.json')" || { echo "::error file=package.json::invalid JSON"; exit 1; }
+          node -e "require('./.claude-plugin/marketplace.json')" || { echo "::error file=.claude-plugin/marketplace.json::invalid JSON"; exit 1; }
+
+      - name: Version sync (package.json == marketplace.json)
+        shell: bash
+        run: |
+          PKG=$(node -p "require('./package.json').version")
+          MKT=$(node -p "require('./.claude-plugin/marketplace.json').version")
+          echo "package.json=$PKG marketplace.json=$MKT"
+          if [ "$PKG" != "$MKT" ]; then
+            echo "::error::version drift — package.json=$PKG != marketplace.json=$MKT"
+            exit 1
+          fi
+
+      - name: Manifest <-> filesystem skills in sync
+        shell: bash
+        run: |
+          mapfile -t LISTED < <(node -p "require('./.claude-plugin/marketplace.json').skills.join('\n')")
+          fail=0
+          # every skill listed in marketplace.json exists on disk with a SKILL.md
+          for s in "${LISTED[@]}"; do
+            if [ ! -f "$s/SKILL.md" ]; then
+              echo "::error::manifest lists '$s' but '$s/SKILL.md' is missing"
+              fail=1
+            fi
+          done
+          # every skill dir on disk is registered in the manifest
+          for d in plugins/skills/*/; do
+            d="${d%/}"
+            printf '%s\n' "${LISTED[@]}" | grep -qx "$d" || {
+              echo "::error::skill dir '$d' exists but is not registered in marketplace.json"
+              fail=1
+            }
+          done
+          exit $fail
+
+      # --- release-only guards (run only when the version changed vs base) ---
+
+      - name: Detect version bump vs base
+        id: bump
+        shell: bash
+        run: |
+          HEAD_VER=$(node -p "require('./package.json').version")
+          BASE_JSON=$(git show "origin/${{ github.base_ref }}:package.json" 2>/dev/null || echo '{}')
+          BASE_VER=$(node -p "(${BASE_JSON}).version || ''" 2>/dev/null || echo "")
+          echo "base=$BASE_VER head=$HEAD_VER"
+          echo "ver=$HEAD_VER" >> "$GITHUB_OUTPUT"
+          if [ "$HEAD_VER" != "$BASE_VER" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Version not already released (tag collision)
+        if: steps.bump.outputs.changed == 'true'
+        shell: bash
+        run: |
+          VER="${{ steps.bump.outputs.ver }}"
+          if git rev-parse -q --verify "refs/tags/v$VER" >/dev/null; then
+            echo "::error::v$VER already tagged/released — bump to an unused version"
+            exit 1
+          fi
+          echo "v$VER is free"
+
+      - name: CHANGELOG has an entry for this version
+        if: steps.bump.outputs.changed == 'true'
+        shell: bash
+        run: |
+          VER="${{ steps.bump.outputs.ver }}"
+          if ! grep -qE "^## \[v$VER\]" CHANGELOG.md; then
+            echo "::error file=CHANGELOG.md::release PR bumps version to $VER but no '## [v$VER]' section in CHANGELOG"
+            exit 1
+          fi
+          echo "CHANGELOG has v$VER"
