@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "intent_bonus": 0.34,
+  "neighbor_factor": 0.3,
+  "intent_map": {
+    "blast radius": ["codegraph-affected"],
+    "which tests": ["codegraph-affected"],
+    "what tests": ["codegraph-affected"],
+    "impacted tests": ["codegraph-affected"],
+    "affected tests": ["codegraph-affected"],
+    "tests to run": ["codegraph-affected"],
+    "tests should i run": ["codegraph-affected"],
+    "rerun tests": ["codegraph-affected"],
+    "test selection": ["codegraph-affected"],
+    "after this commit": ["codegraph-affected"],
+    "after my change": ["codegraph-affected"],
+    "track mistakes": ["mistake-learning"],
+    "recurring mistake": ["mistake-learning"],
+    "same mistake": ["mistake-learning"],
+    "keep making the same": ["mistake-learning"],
+    "knowledge graph": ["graphify-link"],
+    "wire codegraph": ["codegraph-link"],
+    "link codegraph": ["codegraph-link"]
+  },
+  "graph": {
+    "codegraph-affected": { "requires": ["codegraph-link"], "conflicts_with": [] },
+    "codegraph-link": { "requires": [], "conflicts_with": [] },
+    "graphify-link": { "requires": [], "conflicts_with": [] },
+    "mistake-learning": { "requires": [], "conflicts_with": [] },
+    "skill-router": { "requires": [], "conflicts_with": [] }
+  }
+}

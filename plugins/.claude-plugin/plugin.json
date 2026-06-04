@@ -1,6 +1,6 @@
 {
   "name": "whipforaweeb-skills",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "description": "Five Claude Code skills: graphify-link, codegraph-link, codegraph-affected, mistake-learning, skill-router. Skills auto-load and the skill-router / mistake-learning / graphify hooks auto-register via a cross-platform Node launcher.",
   "author": {
     "name": "VVeb1250",
