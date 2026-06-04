@@ -1,6 +1,6 @@
 ---
 name: skill-router
-description: Local, no-AI skill suggester. A UserPromptSubmit hook scores every installed skill/command against your prompt (TF-IDF cosine) and injects only high-confidence matches, so the model picks the right skill without you remembering names. Multilingual via an optional semantic tier (any language → English skills). Surfaces dormant skills that the harness does not list.
+description: Local, no-AI skill suggester. A UserPromptSubmit hook scores every installed skill/command against your prompt (hybrid: TF-IDF cosine + an optional curated intent-phrase boost, conflict pruning and prerequisite fan-out via skill-graph.json) and injects only high-confidence matches, so the model picks the right skill without you remembering names. Multilingual via an optional semantic tier (any language → English skills). Surfaces dormant skills that the harness does not list.
 ---
 
 # skill-router
