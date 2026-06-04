@@ -5,6 +5,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [v0.7.0] — 2026-06-04
+
+### Added — hybrid skill-router (curated intent + prerequisite fan-out + conflict pruning)
+
+> TF-IDF only matches when the prompt shares literal tokens with a skill's description. A prompt that expresses a skill's *intent* in different words — "estimate the blast radius before I push" for `codegraph-affected` — scored zero and the skill never surfaced. This adds a curated semantic layer on top of TF-IDF with **no new dependency** (Neo4j-free, pure Python).
+
+- New `plugins/skills/skill-router/hooks/skill-graph.json` — a hand-maintained, optional file holding an `intent_map` (synonym phrase → skill) and a small `graph` (per-skill `requires` / `conflicts_with`). Kept separate from the auto-built `.skill-index.json` so it survives index rebuilds. **If the file is absent or invalid the router behaves exactly like the pure TF-IDF v1** — the layer is purely additive and instantly roll-back-able.
+- `skill-router.py`: `score()` refactored into `_tfidf()` (unpruned scores) + a new `route()` that layers on top:
+  - **intent boost** — a curated phrase found in the prompt injects/boosts its skill, closing the synonym gap TF-IDF cannot (substring match, no NLP lib).
+  - **prerequisite fan-out** — a match pulls its `requires` into a *spare* result slot only; never displaces a real match, never exceeds `MAX_RESULTS`, so setup skills are suggested without spamming.
+  - **conflict pruning** — a lower-ranked skill is dropped when a higher-ranked one declares it conflicting.
+- Tier-2 multilingual embedding fallback is unchanged and still fires only when the hybrid tier-1 is silent on a non-ASCII prompt. Hook interface, index format and the "any error → exit 0" safety contract are unchanged.
+- New `plugins/skills/skill-router/hooks/test_hybrid.py` — portable, self-contained unit tests (synthetic corpus, no installed index needed) covering: empty-graph == v1, intent injection of a zero-overlap skill, fan-out filling spare slots without displacement, and conflict pruning.
+
+> **Verified** against the live 304-skill index: a discriminating English prompt ("estimate the blast radius before I push") returns nothing under v1 and routes to `codegraph-affected` (+ `codegraph-link` fanned in) under v2, while plain-English prompts (`review this pull request…`) and unrelated prompts are unchanged. `route()` averages ~4 ms/call over 304 skills; full cold hook ~210 ms — far under the 10 s budget.
+
+---
+
 ## [v0.6.2] — 2026-06-04
 
 ### Added — hooks auto-register on the `/plugin` install path
